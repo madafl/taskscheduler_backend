@@ -6,12 +6,24 @@ export default class TasksController {
 
     static async apiGetTasks(req, res, next) {
         const tasks = await TasksDAO.getTasks();
-        const response = {
-            tasks: tasks,
-            message: "hi"
-        }
-        res.json(response);
 
+        //map tasks to only send the fields we want
+        const response = tasks.map(task => {
+            return {
+                id: task._id,
+                title: task.name,
+                start:task.start,
+                end: task.end,
+                progress: task.progress,
+            }
+            
+        });
+        const finalResponse = {
+            tasks: tasks,
+        }
+        res.json(finalResponse);
+        
+      
     }
     static async apigetTaskById(req, res, next){
         try { 
@@ -35,18 +47,22 @@ export default class TasksController {
         //userInfo:  user_id, team_id, board,
         try {
             const title = req.body.title;
-            const body = req.body.body;
+            const description = req.body.description;
             const progress = req.body.progress;
             const start = req.body.start;
             const end = req.body.end;
+            const type = req.body.type;
+            const status = req.body.status;
+            const dependencies = req.body.dependencies;
+            const backgroundColor = req.body.backgroundColor;
+            const progressColor = req.body.progressColor;
             const user_info = {
                 name: req.body.name,
             } 
 
             const response = await TasksDAO.addTask(
-                title, body, start, end, user_info, progress
+                title, description, start, end, user_info, progress, type, status, dependencies, backgroundColor, progressColor
             )
-            console.log( response)
             res.json({status:"succes"});
 
         } catch (e) {

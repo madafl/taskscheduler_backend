@@ -25,7 +25,7 @@ export default class TasksDAO {
         try {
             let list = tasks.find();
             let listArray = list.toArray();
-            return listArray;
+            return listArray ;
         } catch (e) {
             console.error('Unable to convert list to array or problem couting documents' + e);
             return  {tasks: []}
@@ -42,19 +42,23 @@ export default class TasksDAO {
         }
     }
 
-    static async addTask(title, body, start, end, user_info, progress) {
+    static async addTask(title, description, start, end, user_info,  progress, type, status, dependencies, backgroundColor, progressColor) {
         try { 
             const user_db = await users.findOne({username: user_info.name}); // get the user from db based on the username => get its _id
             const task_record = {
                 name: title,
-                body: body,
-                start: new Date(Date.parse(start)),
-                end: new Date(Date.parse(end)),
+                description: description,
+                start: start,
+                end: end,
                 progress: progress,
+                type: type,
+                status: status,
+                dependencies: dependencies,
+                backgroundColor: backgroundColor,
+                progressColor: progressColor,
                 user_info:{
                     user_id : user_db._id,
                 },
-                
             }
             return await tasks.insertOne(task_record);
         } catch (e) {
