@@ -47,8 +47,11 @@ export default class TasksDAO {
   static async getTasksByProjectId(projectId) {
     try {
       let tasksByProjectId = tasks.find({ projectId: ObjectId(projectId) });
-      let listArray = tasksByProjectId.toArray();
-      return listArray;
+      let project = projects.find({ _id: ObjectId(projectId) });
+      let projectArray = await project.toArray();
+      let tasksArray = await tasksByProjectId.toArray();
+      const result = [projectArray, tasksArray];
+      return result;
     } catch (e) {
       console.error("Something went wrong in restaurantsDAO: " + e);
       throw e;
@@ -105,21 +108,19 @@ export default class TasksDAO {
       console.error("Unable to update review: " + e);
     }
   }
-  static async deleteTask(task_id, user_name) {
-    //Delete from db based on the task_id and the user_id
-    const user_db = await users.findOne({ username: user_name });
+  static async deleteTask(task_id, user_id) {
+    // Delete from db based on the task_id and the user_id
+    // user that reated the task or project owner cand elete/ edit task
     const task_db = await tasks.findOne({ _id: ObjectId(task_id) });
 
-    const user_id = user_db._id;
     //daca user_id este null sau daca userul taskului este diferit de cel care doreste sa il stearga
-
     if (user_id != null) {
-      if (user_id.equals(task_db.user_info.user_id)) {
+      if (ObjectId(user_id).equals(task_db.user_info.user_id)) {
         try {
           const deleteResponse = await tasks.deleteOne({
             _id: ObjectId(task_id),
             user_info: {
-              user_id: user_db._id,
+              user_id: ObjectId(user_id),
             },
           });
           return deleteResponse;
@@ -133,6 +134,47 @@ export default class TasksDAO {
       }
     } else {
       console.log("No user id.");
+    }
+  }
+  static async updateDateProgressTask(task_id, data, updated_element, user_id) {
+    console.log(task_id, data, updated_element, user_id);
+    // check if same user that created the task of project owner
+    try {
+      if (updated_element === "date") {
+        const response = tasks.updateOne(
+          {
+            _id: ObjectId(task_id),
+            user_info: {
+              user_id: ObjectId(user_id),
+            },
+          },
+          {
+            $set: {
+              start: data.start,
+              end: data.end,
+            },
+          }
+        );
+        return response;
+      } else if (updated_element === "progress") {
+        console.log(updated_element);
+        const response = tasks.updateOne(
+          {
+            _id: ObjectId(task_id),
+            user_info: {
+              user_id: ObjectId(user_id),
+            },
+          },
+          {
+            $set: {
+              progress: data.progress,
+            },
+          }
+        );
+        return response;
+      }
+    } catch (e) {
+      console.error("Unable to update date: " + e);
     }
   }
 }

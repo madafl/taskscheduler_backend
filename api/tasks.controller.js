@@ -37,9 +37,8 @@ export default class TasksController {
   static async apiGetTasksByProjectId(req, res, next) {
     try {
       const projectId = req.params.id;
-
-      const tasks = await TasksDAO.getTasksByProjectId(projectId);
-      res.json(tasks);
+      const result = await TasksDAO.getTasksByProjectId(projectId);
+      res.status(200).json(result);
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -121,13 +120,33 @@ export default class TasksController {
     try {
       //req.username from auth middleware
       const task_id = req.query.task_id;
-      const user_name = req.username;
-      const response = await TasksDAO.deleteTask(task_id, user_name);
+      const user_id = req.user_id; // ????????? req.user_id
+      const response = await TasksDAO.deleteTask(task_id, user_id);
       if (response.deletedCount === 1) {
         res.status(200).json({ status: 200 });
       } else {
         res.status(401).json({ status: 401 });
       }
+    } catch (e) {
+      res.status(500).json({ error: e.message, status: 500 });
+    }
+  }
+  static async apiUpdateDateProgressTask(req, res, next) {
+    try {
+      const task_id = req.query.task_id;
+      const user_id = req.user_id;
+      const updated_element = req.query.updated_element;
+      const data = req.body;
+      const response = await TasksDAO.updateDateProgressTask(
+        task_id,
+        data,
+        updated_element,
+        user_id
+      );
+      if (response.modifiedCount == 0) {
+        throw new Error("unable to update task.");
+      }
+      res.json({ status: "succes" });
     } catch (e) {
       res.status(500).json({ error: e.message, status: 500 });
     }

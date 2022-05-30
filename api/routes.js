@@ -5,22 +5,34 @@ import ProjectController from "./project.controller.js";
 import auth from "../middleware/auth.js";
 
 const router = express.Router();
-
+// TASKS
 router.route("/tasks").get(TasksController.apiGetTasks);
-router.route("/id/:id").get(TasksController.apigetTaskById);
-
+router.route("/task/:id").get(TasksController.apigetTaskById);
+router
+  .route("/task/update")
+  .put(auth, TasksController.apiUpdateDateProgressTask);
 router
   .route("/task")
   .post(auth, TasksController.apiPostTask)
   .put(auth, TasksController.apiUpdateTask)
   .delete(auth, TasksController.apiDeleteTask);
-router.route("/project/:id").get(TasksController.apiGetTasksByProjectId);
 
+// USERS
 router.route("/register").post(RegisterController.apiPostRegister);
-
 router.route("/login").post(RegisterController.loginUser);
+router.route("/user/:id").get(RegisterController.apiGetUserById);
 
-router.route("/project").post(ProjectController.apiPostProject);
-router.route("/projects").get(ProjectController.apiGetProjects);
+// PROJECTS
+router.route("/project/:id").get(TasksController.apiGetTasksByProjectId);
+// router.route("/project/:id");
+router
+  .route("/project")
+  .post(ProjectController.apiPostProject)
+  .put(auth, ProjectController.apiUpdateProject)
+  .delete(auth, ProjectController.apiDeleteProject);
+
+router.route("/projects").get(auth, ProjectController.apiGetProjects);
+
+//.put(auth, ProjectController.apiUpdateProject);
 
 export default router;

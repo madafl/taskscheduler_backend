@@ -7,7 +7,7 @@ const auth = async (req, res, next) => {
     let decodedToken;
     if (token) {
       decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-      req.username = decodedToken?.username;
+      req.user_id = decodedToken?.token; // access it req.user_id
     }
     next();
   } catch (error) {
