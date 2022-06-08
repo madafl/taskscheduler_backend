@@ -1,6 +1,6 @@
 import mongodb from "mongodb";
 const ObjectId = mongodb.ObjectId;
-import RegisterDAO from "./registerDAO.js";
+import ProjectDAO from "./projectDAO.js";
 
 let tasks;
 let users;
@@ -40,7 +40,7 @@ export default class TasksDAO {
       let task = tasks.findOne({ _id: ObjectId(id) });
       return task;
     } catch (e) {
-      console.error("Something went wrong in restaurantsDAO: " + e);
+      console.error("Something went wrong in tasksDAO: " + e);
       throw e;
     }
   }
@@ -53,57 +53,59 @@ export default class TasksDAO {
       const result = [projectArray, tasksArray];
       return result;
     } catch (e) {
-      console.error("Something went wrong in restaurantsDAO: " + e);
+      console.error("Something went wrong in tasksDAO: " + e);
       throw e;
     }
   }
 
-  static async addTask(
-    title,
-    description,
-    start,
-    end,
-    user_info,
-    progress,
-    type,
-    status,
-    dependencies,
-    backgroundColor,
-    progressColor,
-    projectId
-  ) {
+  static async addTask(body, user_id) {
     try {
-      const user_db = await users.findOne({ username: user_info.name }); // get the user from db based on the username => get its _id
       const task_record = {
-        name: title,
-        description: description,
-        start: start,
-        end: end,
-        progress: progress,
-        type: type,
-        status: status,
-        dependencies: dependencies,
-        backgroundColor: backgroundColor,
-        progressColor: progressColor,
-        projectId: ObjectId(projectId),
+        name: body.name,
+        description: body.description,
+        start: body.start,
+        end: body.end,
+        progress: body.progress,
+        type: body.type,
+        dependencies: body.dependencies,
+        backgroundColor: body.backgroundColor,
+        progressColor: body.progressColor,
+        projectId: ObjectId(body.project_id),
         user_info: {
-          user_id: user_db._id,
+          user_id: ObjectId(user_id),
         },
       };
-      return await tasks.insertOne(task_record);
+      const result = await tasks.insertOne(task_record);
+      return result;
     } catch (e) {
       console.error("Unable to post task: " + e);
       return { error: e };
     }
   }
-  static async updateTask(task_id, user_id, body, title, date) {
+  static async updateTask(task_id, user_id, task) {
+    const task_db = await tasks.findOne({ _id: ObjectId(task_id) });
     try {
-      //reviewul cu idul corect si userul corect ( cel care l a creat)
-      const updateResponse = await tasks.updateOne(
-        { _id: ObjectId(task_id) },
-        { $set: { body: body, date: date, title: title } }
-      );
-      return updateResponse;
+      if (ObjectId(user_id).equals(task_db.user_info.user_id)) {
+        let response = await tasks.updateOne(
+          { _id: ObjectId(task_id) },
+          {
+            $set: {
+              name: task.name,
+              description: task.description,
+              start: task.start,
+              end: task.end,
+              progress: task.progress,
+              type: task.type,
+              dependencies: task.dependencies,
+              projectId: ObjectId(task.project_id),
+            },
+          }
+        );
+        return response;
+      } else {
+        console.log("Nu ai permisiunea sa editezi taskul.");
+        return { status: 401 };
+      }
     } catch (e) {
       console.error("Unable to update review: " + e);
     }
@@ -123,9 +125,10 @@ export default class TasksDAO {
               user_id: ObjectId(user_id),
             },
           });
+
           return deleteResponse;
         } catch (e) {
-          console.error("Unable to delete task: " + e);
+          console.error("Taskul nu a putut fi sters: " + e);
           return { error: e };
         }
       } else {
@@ -137,7 +140,6 @@ export default class TasksDAO {
     }
   }
   static async updateDateProgressTask(task_id, data, updated_element, user_id) {
-    console.log(task_id, data, updated_element, user_id);
     // check if same user that created the task of project owner
     try {
       if (updated_element === "date") {
@@ -157,7 +159,6 @@ export default class TasksDAO {
         );
         return response;
       } else if (updated_element === "progress") {
-        console.log(updated_element);
         const response = tasks.updateOne(
           {
             _id: ObjectId(task_id),

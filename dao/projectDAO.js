@@ -40,17 +40,15 @@ export default class ProjectDAO {
           let my_projects_array = my_projects.toArray();
           return my_projects_array;
         } catch (e) {
-          console.log("error here " + e);
+          console.log("Proiectele nu au putut fi convertite. " + e);
           return [];
         }
       } catch (e) {
-        console.log("smt here " + e);
+        console.log("Nu au fost gasite proiecte " + e);
         return [];
       }
     } catch (e) {
-      console.error(
-        "Unable to convert list to array or problem couting documents" + e
-      );
+      console.error("Proiectele nu au putut fi convertite. " + e);
       return [];
     }
   }
@@ -59,7 +57,7 @@ export default class ProjectDAO {
       let project = projects.findOne({ _id: ObjectId(id) });
       return project;
     } catch (e) {
-      console.error("Something went wrong in restaurantsDAO: " + e);
+      console.error("Something went wrong in projectDAO: " + e);
       throw e;
     }
   }
@@ -70,15 +68,11 @@ export default class ProjectDAO {
     end,
     progress,
     type,
-    project_owner_email,
+    project_owner,
     members_emails,
     status
   ) {
     try {
-      const user_db = await users.findOne({
-        email: project_owner_email,
-      });
-      // get the user from db based on the username => get its _id
       // get id of memebers based on email
       // if no user in db => return error => ask if send an invite
       let members_db = [];
@@ -99,7 +93,7 @@ export default class ProjectDAO {
         end: end,
         progress: progress,
         type: type,
-        project_owner_id: user_db._id,
+        project_owner_id: ObjectId(project_owner),
         members: members_db,
         status: status,
       };
@@ -109,41 +103,40 @@ export default class ProjectDAO {
       return { error: e };
     }
   }
-  static async updateProject(body, project_id, user_id) {
+  static async updateProject(project, project_id, user_id) {
     const project_db = await projects.findOne({ _id: ObjectId(project_id) });
     try {
       // verifica user_id === project owner
       if (ObjectId(user_id).equals(project_db.project_owner_id)) {
         // Verificare emailuri introduse
-        // daca membrul exista => returneaza members_db care contine id uri
+        // daca membrul exista => returneaza members_db care contine id uri=> se adauga in db
         // daca nu exista => returneaza no_email: emailul
         let members_db = [];
-        for (let i = 0; i < body.emails.length; i++) {
+        for (let i = 0; i < project.members.length; i++) {
           let member = await users.findOne({
-            email: body.emails[i],
+            email: project.members[i],
           });
           if (member != null) {
             members_db.push(member._id);
           } else {
-            console.log("No member with email: " + body.emails[i]);
-            return { no_email: body.emails[i] };
+            console.log("No member with email: " + project.members[i]);
+            return { no_email: project.members[i] };
           }
         }
-        // campuri modificate
-        let response;
-        Object.entries(body).map(([k, v]) => {
-          response = projects.updateOne(
-            {
-              _id: ObjectId(project_id),
+        let response = await projects.updateOne(
+          { _id: ObjectId(project_id) },
+          {
+            $set: {
+              name: project.name,
+              start: project.start,
+              end: project.end,
+              progress: project.progress,
+              type: project.type,
+              members: members_db,
+              status: project.status,
             },
-            {
-              $set: {
-                k: v,
-              },
-            },
-            { upsert: true }
-          );
-        });
+          }
+        );
         return response;
       } else {
         console.log("Nu ai permisiunea sa editezi proiectul.");
@@ -165,6 +158,9 @@ export default class ProjectDAO {
             _id: ObjectId(project_id),
             project_owner_id: ObjectId(user_id),
           });
+          const delete_tasks = await tasks.deleteMany({
+            projectId: ObjectId(project_id),
+          });
           return deleteResponse;
         } catch (e) {
           console.error("Proiectul nu a putut fi sters: " + e);
@@ -176,6 +172,39 @@ export default class ProjectDAO {
       }
     } else {
       console.log("No user id.");
+    }
+  }
+  static async updateProjectProgressOnTaskUpdated(project_id) {
+    //ia toate taskurile dintr-un proiect, aduna progresul lor si calculeaza progresul proiectului, dupa updatarea noului progres
+    try {
+      let tasks_by_project_id = await tasks.find({
+        projectId: ObjectId(project_id),
+      }); // taskurile proiectului
+
+      let sum_of_progress_in_project = 0;
+      const tasks_in_project = await tasks_by_project_id.toArray(); // taskurile proiectului array
+      const number_of_tasks = parseInt(tasks_in_project.length);
+      tasks_in_project.forEach(task => {
+        sum_of_progress_in_project += parseInt(task.progress);
+      });
+
+      let project_progress = sum_of_progress_in_project / number_of_tasks; // progresul proiectului
+
+      const updateResponse = await projects.updateOne(
+        { _id: ObjectId(project_id) },
+        { $set: { progress: project_progress } }
+      );
+      if (updateResponse.modifiedCount == 1) {
+        const project_db = await projects.findOne({
+          _id: ObjectId(project_id),
+        }); // get the project from db based on the projectId => get its _id
+        return { status: true, project: project_db };
+      } else {
+        return { status: false, project: "" };
+      }
+    } catch (e) {
+      console.error("Proiectul nu a putut fi updatat: " + e);
+      return { error: e };
     }
   }
 }

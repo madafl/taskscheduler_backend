@@ -16,24 +16,28 @@ export default class ProjectController {
       const end = req.body.end;
       const progress = req.body.progress;
       const type = req.body.type;
-      const project_owner_email = req.body.project_owner;
+      const project_owner = req.body.project_owner;
       const members_emails = req.body.emails;
       const status = req.body.status;
+      if (name === null || project_owner === "") {
+        res.status(500).json({ error: "Campuri encompletate", status: 500 });
+      } else {
+        const response = await ProjectDAO.addProject(
+          name,
+          start,
+          end,
+          progress,
+          type,
+          project_owner,
+          members_emails,
+          status
+        );
 
-      const response = await ProjectDAO.addProject(
-        name,
-        start,
-        end,
-        progress,
-        type,
-        project_owner_email,
-        members_emails,
-        status
-      );
-      if (response.no_email != [] && response.no_email != null) {
-        res.status(418).json({ error: response.no_email });
-      } else if (response.insertedId != null) {
-        res.status(200).json({ status: 200 });
+        if (response.no_email != [] && response.no_email != null) {
+          res.status(418).json({ error: response.no_email });
+        } else if (response.insertedId != null) {
+          res.status(200).json({ status: 200 });
+        }
       }
     } catch (e) {
       res.status(500).json({ error: e.message, status: 500 });
@@ -41,27 +45,26 @@ export default class ProjectController {
   }
   static async apiUpdateProject(req, res, next) {
     try {
-      const body = req.body;
+      const project = req.body;
       const user_id = req.user_id;
       const project_id = req.query.project_id;
+
       const response = await ProjectDAO.updateProject(
-        body,
+        project,
         project_id,
         user_id
       );
-
       if (response.no_email != [] && response.no_email != null) {
         res.status(418).json({ error: response.no_email });
-      } else {
-        res.status(200).json({ response });
-        console.log("Raspuns " + response);
-        // console.log("HERE");
+      } else if (response.modifiedCount === 1) {
+        res.status(200).json({ status: 200 });
       }
     } catch (e) {
       console.log(e);
     }
   }
   static async apiDeleteProject(req, res, next) {
+    // on delete project, delete tasks from tasks collection with projectId = projectId
     try {
       const user_id = req.user_id; //id-ul utilizatorului autentificat
       const project_id = req.query.project_id;

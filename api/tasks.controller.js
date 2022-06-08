@@ -1,5 +1,5 @@
+import ProjectDAO from "../dao/projectDAO.js";
 import TasksDAO from "../dao/tasksDAO.js";
-// TODO: when click on a user, see all his reviews
 
 export default class TasksController {
   static async apiGetTasks(req, res, next) {
@@ -49,36 +49,21 @@ export default class TasksController {
     //task_info: titlu, text, data, label, start_date, due_date,
     //userInfo:  user_id, team_id, board,
     try {
-      const title = req.body.title;
-      const description = req.body.description;
-      const progress = req.body.progress;
-      const start = req.body.start;
-      const end = req.body.end;
-      const type = req.body.type;
-      const status = req.body.status;
-      const dependencies = req.body.dependencies;
-      const backgroundColor = req.body.backgroundColor;
-      const progressColor = req.body.progressColor;
-      const projectId = req.body.projectId;
-      const user_info = {
-        name: req.body.name,
-      };
-
-      const response = await TasksDAO.addTask(
-        title,
-        description,
-        start,
-        end,
-        user_info,
-        progress,
-        type,
-        status,
-        dependencies,
-        backgroundColor,
-        progressColor,
-        projectId
-      );
-      res.json({ status: "succes" });
+      const body = req.body;
+      const user_id = req.user_id;
+      const project_id = req.body.project_id;
+      const response = await TasksDAO.addTask(body, user_id);
+      if (response.insertedId != null) {
+        const update_project =
+          await ProjectDAO.updateProjectProgressOnTaskUpdated(project_id);
+        if (update_project) {
+          res.status(200).json({ status: 200 });
+        } else {
+          res.status(500).json({ status: 500 });
+        }
+      } else {
+        res.status(500).json({ error: "Taskul nu a putut fi adaugat." });
+      }
     } catch (e) {
       res.status(500).json("error: " + e.message);
     }
@@ -89,41 +74,46 @@ export default class TasksController {
     // check if the user that modifies is the same as the one that created
     try {
       const task_id = req.query.task_id;
-      const title = req.query.title;
-      const body = req.query.body;
-      const user_id = req.query.user_id;
-      const date = new Date()
-        .toISOString()
-        .replace(/T/, " ")
-        .replace(/\..+/, "");
-
-      const response = await TasksDAO.updateTask(
-        task_id,
-        user_id,
-        body,
-        title,
-        date
-      );
+      const task = req.body;
+      const user_id = req.user_id;
+      const response = await TasksDAO.updateTask(task_id, user_id, task);
       var { error } = response;
       if (error) {
         res.status(400).json({ error });
       }
       if (response.modifiedCount == 0) {
-        throw new Error("unable to update task");
+        throw new Error("Unable to update task");
+      } else {
+        const update_project =
+          await ProjectDAO.updateProjectProgressOnTaskUpdated(
+            req.body.project_id
+          );
+        // console.log(update_project);
+        if (update_project) {
+          res.status(200).json({ status: 200 });
+        } else {
+          res.status(500).json({ status: 500 });
+        }
       }
-      res.json({ status: "succes" });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
   }
   static async apiDeleteTask(req, res, next) {
     try {
-      //req.username from auth middleware
       const task_id = req.query.task_id;
-      const user_id = req.user_id; // ????????? req.user_id
+      const user_id = req.user_id;
+      const project_id = req.query.project_id;
       const response = await TasksDAO.deleteTask(task_id, user_id);
       if (response.deletedCount === 1) {
-        res.status(200).json({ status: 200 });
+        const update_project =
+          await ProjectDAO.updateProjectProgressOnTaskUpdated(project_id);
+        // console.log(update_project);
+        if (update_project) {
+          res.status(200).json({ status: 200 });
+        } else {
+          res.status(500).json({ status: 500 });
+        }
       } else {
         res.status(401).json({ status: 401 });
       }
@@ -145,8 +135,21 @@ export default class TasksController {
       );
       if (response.modifiedCount == 0) {
         throw new Error("unable to update task.");
+      } else {
+        if (updated_element === "progress") {
+          const update_project =
+            await ProjectDAO.updateProjectProgressOnTaskUpdated(
+              data.project_id
+            );
+          if (update_project.status) {
+            res
+              .status(200)
+              .json({ status: 200, project: update_project.project });
+          } else {
+            res.status(500).json({ status: 500 });
+          }
+        }
       }
-      res.json({ status: "succes" });
     } catch (e) {
       res.status(500).json({ error: e.message, status: 500 });
     }

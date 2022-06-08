@@ -23,15 +23,13 @@ router.route("/login").post(RegisterController.loginUser);
 router.route("/user/:id").get(RegisterController.apiGetUserById);
 
 // PROJECTS
+router.route("/projects").get(auth, ProjectController.apiGetProjects);
 router.route("/project/:id").get(TasksController.apiGetTasksByProjectId);
-// router.route("/project/:id");
 router
   .route("/project")
   .post(ProjectController.apiPostProject)
   .put(auth, ProjectController.apiUpdateProject)
   .delete(auth, ProjectController.apiDeleteProject);
-
-router.route("/projects").get(auth, ProjectController.apiGetProjects);
 
 //.put(auth, ProjectController.apiUpdateProject);
 
