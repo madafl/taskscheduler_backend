@@ -26,6 +26,9 @@ router.route("/user/:id").get(RegisterController.apiGetUserById);
 router.route("/projects").get(auth, ProjectController.apiGetProjects);
 router.route("/project/:id").get(TasksController.apiGetTasksByProjectId);
 router
+  .route("/project/members/:id")
+  .get(auth, ProjectController.apiGroupTasksByMember);
+router
   .route("/project")
   .post(ProjectController.apiPostProject)
   .put(auth, ProjectController.apiUpdateProject)

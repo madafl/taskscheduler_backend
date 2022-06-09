@@ -38,6 +38,7 @@ export default class TasksController {
     try {
       const projectId = req.params.id;
       const result = await TasksDAO.getTasksByProjectId(projectId);
+
       res.status(200).json(result);
     } catch (e) {
       res.status(500).json({ error: e.message });

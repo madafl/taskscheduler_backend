@@ -79,4 +79,18 @@ export default class ProjectController {
       res.status(500).json({ error: e.message, status: 500 });
     }
   }
+  static async apiGroupTasksByMember(req, res, next) {
+    // group tasks by member in project
+    try {
+      const project_id = req.params.id;
+      const response = await ProjectDAO.groupTasksByMember(project_id);
+      if (response !== []) {
+        res.json(response);
+      } else {
+        res.status(500).json({ status: 500 });
+      }
+    } catch (e) {
+      console.log("here" + e);
+    }
+  }
 }

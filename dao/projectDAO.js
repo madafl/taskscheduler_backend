@@ -207,4 +207,35 @@ export default class ProjectDAO {
       return { error: e };
     }
   }
+  static async groupTasksByMember(project_id) {
+    try {
+      // new ObjectId("627d514556e0338f8817af92") pt toti utilizatorii care au creat taskuri in proiect
+
+      let users_tasks_count = tasks.aggregate([
+        {
+          $match: { projectId: ObjectId(project_id) },
+        },
+        {
+          $group: {
+            _id: "$user_info.user_id",
+            total: { $sum: 1 },
+          },
+        },
+      ]);
+      const users_tasks_count_array = await users_tasks_count.toArray();
+      let usersss = [];
+      // let usernames = { user: "", count: "" };
+      users_tasks_count_array.map(async user => {
+        const user_db = await users.findOne({ _id: user._id });
+        let usernames = { user: user_db.username, count: user.total };
+        usersss.push(usernames);
+      });
+      return new Promise((resolve, reject) => {
+        return setTimeout(() => resolve(usersss), 600);
+      });
+    } catch (e) {
+      console.error("Proiectul nu a putut fi updatat: " + e);
+      return { error: e };
+    }
+  }
 }
