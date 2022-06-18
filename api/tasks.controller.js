@@ -89,7 +89,6 @@ export default class TasksController {
           await ProjectDAO.updateProjectProgressOnTaskUpdated(
             req.body.project_id
           );
-        // console.log(update_project);
         if (update_project) {
           res.status(200).json({ status: 200 });
         } else {
@@ -109,7 +108,6 @@ export default class TasksController {
       if (response.deletedCount === 1) {
         const update_project =
           await ProjectDAO.updateProjectProgressOnTaskUpdated(project_id);
-        // console.log(update_project);
         if (update_project) {
           res.status(200).json({ status: 200 });
         } else {
@@ -153,6 +151,15 @@ export default class TasksController {
       }
     } catch (e) {
       res.status(500).json({ error: e.message, status: 500 });
+    }
+  }
+  static async apiGetTasksByUserId(req, res, next) {
+    try {
+      const userId = req.params.id;
+      const result = await TasksDAO.getTasksByUserId(userId);
+      res.status(200).json(result);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
     }
   }
 }

@@ -60,21 +60,42 @@ export default class TasksDAO {
 
   static async addTask(body, user_id) {
     try {
-      const task_record = {
-        name: body.name,
-        description: body.description,
-        start: body.start,
-        end: body.end,
-        progress: body.progress,
-        type: body.type,
-        dependencies: body.dependencies,
-        backgroundColor: body.backgroundColor,
-        progressColor: body.progressColor,
-        projectId: ObjectId(body.project_id),
-        user_info: {
-          user_id: ObjectId(user_id),
-        },
-      };
+      let task_record = "";
+      if (body.assigned_user) {
+        task_record = {
+          name: body.name,
+          description: body.description,
+          start: body.start,
+          end: body.end,
+          progress: body.progress,
+          type: body.type,
+          dependencies: body.dependencies,
+          backgroundColor: body.backgroundColor,
+          progressColor: body.progressColor,
+          projectId: ObjectId(body.project_id),
+          user_info: {
+            user_id: ObjectId(user_id),
+            assigned_user: ObjectId(body.assigned_user),
+          },
+        };
+      } else {
+        task_record = {
+          name: body.name,
+          description: body.description,
+          start: body.start,
+          end: body.end,
+          progress: body.progress,
+          type: body.type,
+          dependencies: body.dependencies,
+          backgroundColor: body.backgroundColor,
+          progressColor: body.progressColor,
+          projectId: ObjectId(body.project_id),
+          user_info: {
+            user_id: ObjectId(user_id),
+          },
+        };
+      }
+
       const result = await tasks.insertOne(task_record);
       return result;
     } catch (e) {
@@ -84,21 +105,57 @@ export default class TasksDAO {
   }
   static async updateTask(task_id, user_id, task) {
     const task_db = await tasks.findOne({ _id: ObjectId(task_id) });
+    const project_db = await projects.findOne({
+      _id: ObjectId(task_db.projectId),
+    });
     try {
-      if (ObjectId(user_id).equals(task_db.user_info.user_id)) {
+      let has_permission = false;
+      project_db.members.map(member => {
+        if (member.equals(ObjectId(user_id))) {
+          has_permission = true;
+        }
+      });
+      // poti edita doar daca esti project_owner sau in members
+      if (
+        ObjectId(user_id).equals(project_db.project_owner_id) ||
+        has_permission
+      ) {
+        let query = {};
+        if (task.assigned_user != "") {
+          query = {
+            name: task.name,
+            description: task.description,
+            start: task.start,
+            end: task.end,
+            progress: task.progress,
+            type: task.type,
+            dependencies: task.dependencies,
+            projectId: ObjectId(task.project_id),
+            user_info: {
+              user_id: ObjectId(user_id),
+              assigned_user: ObjectId(task.assigned_user),
+            },
+          };
+        } else {
+          query = {
+            name: task.name,
+            description: task.description,
+            start: task.start,
+            end: task.end,
+            progress: task.progress,
+            type: task.type,
+            dependencies: task.dependencies,
+            projectId: ObjectId(task.project_id),
+            user_info: {
+              user_id: ObjectId(user_id),
+            },
+          };
+        }
+
         let response = await tasks.updateOne(
           { _id: ObjectId(task_id) },
           {
-            $set: {
-              name: task.name,
-              description: task.description,
-              start: task.start,
-              end: task.end,
-              progress: task.progress,
-              type: task.type,
-              dependencies: task.dependencies,
-              projectId: ObjectId(task.project_id),
-            },
+            $set: query,
           }
         );
         return response;
@@ -107,7 +164,7 @@ export default class TasksDAO {
         return { status: 401 };
       }
     } catch (e) {
-      console.error("Unable to update review: " + e);
+      console.error("Unable to update task: " + e);
     }
   }
   static async deleteTask(task_id, user_id) {
@@ -121,11 +178,7 @@ export default class TasksDAO {
         try {
           const deleteResponse = await tasks.deleteOne({
             _id: ObjectId(task_id),
-            user_info: {
-              user_id: ObjectId(user_id),
-            },
           });
-
           return deleteResponse;
         } catch (e) {
           console.error("Taskul nu a putut fi sters: " + e);
@@ -140,42 +193,67 @@ export default class TasksDAO {
     }
   }
   static async updateDateProgressTask(task_id, data, updated_element, user_id) {
+    const task_db = await tasks.findOne({ _id: ObjectId(task_id) });
+    const project_db = await projects.findOne({
+      _id: ObjectId(task_db.projectId),
+    });
+    // poti edita doar daca esti project_owner sau in members
     // check if same user that created the task of project owner
     try {
-      if (updated_element === "date") {
-        const response = tasks.updateOne(
-          {
-            _id: ObjectId(task_id),
-            user_info: {
-              user_id: ObjectId(user_id),
+      let has_permission = false;
+      project_db.members.map(member => {
+        if (member.equals(ObjectId(user_id))) {
+          has_permission = true;
+        }
+      });
+
+      if (
+        ObjectId(user_id).equals(project_db.project_owner_id) ||
+        has_permission
+      ) {
+        if (updated_element === "date") {
+          const response = tasks.updateOne(
+            {
+              _id: ObjectId(task_id),
             },
-          },
-          {
-            $set: {
-              start: data.start,
-              end: data.end,
+            {
+              $set: {
+                start: data.start,
+                end: data.end,
+              },
+            }
+          );
+          return response;
+        } else if (updated_element === "progress") {
+          const response = tasks.updateOne(
+            {
+              _id: ObjectId(task_id),
             },
-          }
-        );
-        return response;
-      } else if (updated_element === "progress") {
-        const response = tasks.updateOne(
-          {
-            _id: ObjectId(task_id),
-            user_info: {
-              user_id: ObjectId(user_id),
-            },
-          },
-          {
-            $set: {
-              progress: data.progress,
-            },
-          }
-        );
-        return response;
+            {
+              $set: {
+                progress: data.progress,
+              },
+            }
+          );
+          return response;
+        }
+      } else {
+        console.log("Nu ai permisiunea sa editezi taskul.");
       }
     } catch (e) {
       console.error("Unable to update date: " + e);
+    }
+  }
+  static async getTasksByUserId(user_id) {
+    try {
+      let tasksByUserId = tasks.find({
+        user_info: { user_id: ObjectId(user_id) },
+      });
+      let tasksArray = await tasksByUserId.toArray();
+      return tasksArray;
+    } catch (e) {
+      console.error("Something went wrong in tasksDAO: " + e);
+      throw e;
     }
   }
 }

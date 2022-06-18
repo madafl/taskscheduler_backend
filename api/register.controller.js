@@ -78,4 +78,18 @@ export default class RegisterController {
       res.status(500).json({ error: e });
     }
   }
+  static async apiChangePassword(req, res, next) {
+    try {
+      const user_id = req.query.user_id;
+      const passwords = req.body;
+      const response = await RegisterDAO.changePassword(user_id, passwords);
+      if (response.doesPasswordMatch !== true) {
+        res.status(500).json({ message: response.message });
+      } else {
+        res.status(200).json({ message: response.message });
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  }
 }

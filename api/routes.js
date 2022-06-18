@@ -7,6 +7,7 @@ import auth from "../middleware/auth.js";
 const router = express.Router();
 // TASKS
 router.route("/tasks").get(TasksController.apiGetTasks);
+router.route("/tasks/user/:id").get(TasksController.apiGetTasksByUserId);
 router.route("/task/:id").get(TasksController.apigetTaskById);
 router
   .route("/task/update")
@@ -21,6 +22,8 @@ router
 router.route("/register").post(RegisterController.apiPostRegister);
 router.route("/login").post(RegisterController.loginUser);
 router.route("/user/:id").get(RegisterController.apiGetUserById);
+router.route("/user/changepassword").post(RegisterController.apiChangePassword);
+// router.route("/user/changeusername").post(RegisterController.apiChangeUsername);
 
 // PROJECTS
 router.route("/projects").get(auth, ProjectController.apiGetProjects);

@@ -33,6 +33,33 @@ export default class ProjectDAO {
             { members: ObjectId(user_id) },
           ],
         };
+      } else if (filter == "active") {
+        // care au progress > 0 && progress < 100 si ale mele si din care fac parte
+        query = {
+          $or: [
+            { project_owner_id: ObjectId(user_id) },
+            { members: ObjectId(user_id) },
+          ],
+          progress: { $gt: 0, $lt: 100 },
+        };
+      } else if (filter == "completed") {
+        // progress = 100
+        query = {
+          $or: [
+            { project_owner_id: ObjectId(user_id) },
+            { members: ObjectId(user_id) },
+          ],
+          progress: { $eq: 100 },
+        };
+      } else if (filter == "inactive") {
+        // care au progress = 0
+        query = {
+          $or: [
+            { project_owner_id: ObjectId(user_id) },
+            { members: ObjectId(user_id) },
+          ],
+          progress: { $eq: 0 },
+        };
       }
       try {
         let my_projects = await projects.find(query);
@@ -83,7 +110,9 @@ export default class ProjectDAO {
         if (member != null) {
           members_db.push(member._id);
         } else {
-          console.log("No member with email: " + members_emails[i]);
+          console.log(
+            "Nu exista un membru cu acest email: " + members_emails[i]
+          );
           return { no_email: members_emails[i] };
         }
       }
@@ -119,7 +148,9 @@ export default class ProjectDAO {
           if (member != null) {
             members_db.push(member._id);
           } else {
-            console.log("No member with email: " + project.members[i]);
+            console.log(
+              "Nu exista un membru cu acest email: " + project.members[i]
+            );
             return { no_email: project.members[i] };
           }
         }
@@ -209,25 +240,28 @@ export default class ProjectDAO {
   }
   static async groupTasksByMember(project_id) {
     try {
-      // new ObjectId("627d514556e0338f8817af92") pt toti utilizatorii care au creat taskuri in proiect
-
       let users_tasks_count = tasks.aggregate([
         {
           $match: { projectId: ObjectId(project_id) },
         },
         {
           $group: {
-            _id: "$user_info.user_id",
+            _id: "$user_info.assigned_user",
+            // ass_id: "$user_info.assigned_user",
             total: { $sum: 1 },
           },
         },
       ]);
+
       const users_tasks_count_array = await users_tasks_count.toArray();
       let usersss = [];
-      // let usernames = { user: "", count: "" };
       users_tasks_count_array.map(async user => {
         const user_db = await users.findOne({ _id: user._id });
-        let usernames = { user: user_db.username, count: user.total };
+        let usernames = {
+          user: user_db.username,
+          count: user.total,
+          user_id: user_db._id,
+        };
         usersss.push(usernames);
       });
       return new Promise((resolve, reject) => {

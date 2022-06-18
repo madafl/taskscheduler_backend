@@ -19,8 +19,17 @@ export default class ProjectController {
       const project_owner = req.body.project_owner;
       const members_emails = req.body.emails;
       const status = req.body.status;
-      if (name === null || project_owner === "") {
-        res.status(500).json({ error: "Campuri encompletate", status: 500 });
+
+      if (
+        name === null ||
+        project_owner === null ||
+        start === null ||
+        end === null ||
+        members_emails === null
+      ) {
+        res
+          .status(500)
+          .json({ error: "Completati toate campurile!", status: 500 });
       } else {
         const response = await ProjectDAO.addProject(
           name,
@@ -84,6 +93,19 @@ export default class ProjectController {
     try {
       const project_id = req.params.id;
       const response = await ProjectDAO.groupTasksByMember(project_id);
+      if (response !== []) {
+        res.json(response);
+      } else {
+        res.status(500).json({ status: 500 });
+      }
+    } catch (e) {
+      console.log("here" + e);
+    }
+  }
+  static async getProjectById(req, res, next) {
+    try {
+      const project_id = req.params.id;
+      const response = await ProjectDAO.getProjectByID(project_id);
       if (response !== []) {
         res.json(response);
       } else {
