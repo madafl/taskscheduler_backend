@@ -128,7 +128,7 @@ export default class ProjectDAO {
       };
       return await projects.insertOne(project_record);
     } catch (e) {
-      console.error("Unable to post task: " + e);
+      console.error("Unable to post project: " + e);
       return { error: e };
     }
   }
@@ -247,7 +247,6 @@ export default class ProjectDAO {
         {
           $group: {
             _id: "$user_info.assigned_user",
-            // ass_id: "$user_info.assigned_user",
             total: { $sum: 1 },
           },
         },

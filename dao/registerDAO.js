@@ -1,9 +1,8 @@
 import mongodb from "mongodb";
 const ObjectId = mongodb.ObjectId;
 import bcrypt from "bcrypt";
-import e from "express";
 
-//fill the variable with reviews
+//fill the variable with users
 let users;
 
 export default class RegisterDAO {

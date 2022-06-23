@@ -244,10 +244,10 @@ export default class TasksDAO {
       console.error("Unable to update date: " + e);
     }
   }
-  static async getTasksByUserId(user_id) {
+  static async getTasksByUserId(userId) {
     try {
       let tasksByUserId = tasks.find({
-        user_info: { user_id: ObjectId(user_id) },
+        "user_info.assigned_user": ObjectId(userId),
       });
       let tasksArray = await tasksByUserId.toArray();
       return tasksArray;
