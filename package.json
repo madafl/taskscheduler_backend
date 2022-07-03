@@ -7,7 +7,10 @@
   "scripts": {
     "server": "nodemon server",
     "start": "concurrently \"npm run server\" \"cd ../frontend && npm start\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "cd ../frontend && npm run build",
+    "install-client": "cd ../frontend && npm install",
+    "heroku-postbuild": " npm run install-client && npm run build "
   },
   "author": "",
   "license": "ISC",
